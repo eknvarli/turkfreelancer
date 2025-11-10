@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "TürkFreelancer",
+  "version": "1.0",
+  "description": "A community for Turkish freelancer ecosystem.",
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "logo.png"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
