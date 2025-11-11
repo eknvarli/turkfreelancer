@@ -3,7 +3,8 @@ import React, { useState } from "react";
 export default function UserLogin({ setNick }) {
     const [input, setInput] = useState("");
 
-    const submit = () => {
+    const submit = (e) => {
+        e.preventDefault();
         if (!input.trim()) return;
         const nickname = input.trim();
         setNick(nickname);
