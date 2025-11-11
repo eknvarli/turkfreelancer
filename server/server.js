@@ -15,7 +15,6 @@ await sequelize.sync({ alter: true });
 
 const app = express();
 
-// CORS ayarlarını güncelle
 app.use(cors({
     origin: ["http://localhost:3000", "chrome-extension://*"],
     credentials: true
@@ -24,14 +23,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session ayarlarını güncelle
 app.use(session({
     secret: process.env.SESSION_SECRET || "turkfreelancer-secret-key",
     resave: true,
     saveUninitialized: true,
     cookie: {
-        secure: false, // Development'ta false
-        httpOnly: false, // Chrome extension için false
+        secure: false,
+        httpOnly: false,
         maxAge: 24 * 60 * 60 * 1000,
         sameSite: 'lax'
     }
@@ -40,10 +38,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-const users = {}; // socket.id → user
-const userSessions = {}; // nick → socket.id
+const users = {};
+const userSessions = {};
 
-// --- Passport Google OAuth ---
 passport.serializeUser((user, done) => {
     console.log("Serializing user:", user.displayName);
     done(null, user);
@@ -85,7 +82,6 @@ app.get("/auth/google/callback",
         console.log("Google callback success:", user.displayName);
 
         if (req.session.extension) {
-            // Chrome Extension popup - mesaj gönder ve kapat
             res.send(`
         <!DOCTYPE html>
         <html>
@@ -119,7 +115,6 @@ app.get("/auth/google/callback",
                 <p>Sayfa kapatılıyor...</p>
             </div>
             <script>
-                // Sayfa yüklendikten hemen sonra mesaj gönder
                 window.onload = function() {
                     const data = { 
                         name: "${user.displayName}", 
@@ -128,7 +123,6 @@ app.get("/auth/google/callback",
                     };
                     console.log('Sending data to extension:', data);
                     
-                    // Ana pencereye mesaj gönder
                     if (window.opener && !window.opener.closed) {
                         window.opener.postMessage(data, "*");
                         console.log('Message sent successfully');
@@ -136,13 +130,11 @@ app.get("/auth/google/callback",
                         console.error('Parent window not available');
                     }
                     
-                    // 1 saniye sonra pencereyi kapat
                     setTimeout(() => {
                         window.close();
                     }, 1000);
                 };
                 
-                // Pencere kapatılmaya çalışıldığında
                 window.addEventListener('beforeunload', function() {
                     console.log('Window closing...');
                 });
@@ -151,17 +143,13 @@ app.get("/auth/google/callback",
         </html>
       `);
         } else {
-            // Web test - URL'de query parametreleri ile yönlendir
-            // Bu durumda UserLogin component'i URL'yi temizleyecek
             res.redirect(`http://localhost:3000/?name=${encodeURIComponent(user.displayName)}&email=${encodeURIComponent(user.emails[0].value)}`);
         }
     }
 );
-// Kullanıcı çıkış endpoint'i - GÜNCELLENDİ
 app.get("/auth/logout", (req, res) => {
     console.log("Logout request received, user:", req.user?.displayName);
 
-    // Önce socket session'larını temizle
     if (req.user) {
         const userName = req.user.displayName;
         if (userName && userSessions[userName]) {
@@ -174,21 +162,18 @@ app.get("/auth/logout", (req, res) => {
         }
     }
 
-    // Passport logout
     req.logout((err) => {
         if (err) {
             console.error("Passport logout error:", err);
             return res.status(500).json({ success: false, error: "Logout failed" });
         }
 
-        // Session destroy
         req.session.destroy((err) => {
             if (err) {
                 console.error("Session destroy error:", err);
                 return res.status(500).json({ success: false, error: "Session destroy failed" });
             }
 
-            // Cookie temizle
             res.clearCookie("connect.sid");
             console.log("Logout successful");
             res.json({ success: true, message: "Logged out successfully" });
@@ -196,7 +181,6 @@ app.get("/auth/logout", (req, res) => {
     });
 });
 
-// Kullanıcı durumunu kontrol et
 app.get("/auth/check", (req, res) => {
     console.log("Auth check, authenticated:", req.isAuthenticated());
     if (req.isAuthenticated()) {
@@ -214,7 +198,6 @@ app.get("/auth/failure", (req, res) => {
     res.send("OAuth Failed");
 });
 
-// Tüm route'lar için CORS header'ları ekle
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Origin', req.headers.origin);
@@ -223,7 +206,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- Socket.IO chat ---
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
