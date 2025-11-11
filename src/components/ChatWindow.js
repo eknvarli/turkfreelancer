@@ -36,7 +36,7 @@ const ChatWindow = ({ messages, nick }) => {
           ) : (
             <div
               className={`max-w-[80%] rounded-2xl p-3 ${message.user === nick
-                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 rounded-br-none'
+                  ? 'bg-blue-600 rounded-br-none'
                   : 'bg-gray-700 rounded-bl-none'
                 }`}
             >
