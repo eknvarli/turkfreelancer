@@ -1,12 +1,30 @@
 import React from 'react';
 
-const Header = ({ nick, onLogout, isOnline }) => {
+const Header = ({ nick, onLogout, isOnline, userData, isGoogleUser, connectionStatus }) => {
+    const getStatusColor = () => {
+        switch (connectionStatus) {
+            case 'connected': return 'bg-green-400';
+            case 'connecting': return 'bg-yellow-400 animate-pulse';
+            case 'error': return 'bg-red-400';
+            default: return 'bg-gray-400';
+        }
+    };
+
+    const getStatusText = () => {
+        switch (connectionStatus) {
+            case 'connected': return 'Çevrimiçi';
+            case 'connecting': return 'Bağlanıyor...';
+            case 'error': return 'Bağlantı Hatası';
+            default: return 'Çevrimdışı';
+        }
+    };
+
     return (
         <div className="px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-3">
                 <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                    <span className="text-xs text-gray-300">Çevrimiçi</span>
+                    <div className={`w-2 h-2 rounded-full ${getStatusColor()}`}></div>
+                    <span className="text-xs text-gray-300">{getStatusText()}</span>
                 </div>
                 <div className="text-xs text-gray-400">•</div>
                 <div className="text-sm font-medium text-gray-200">TurkFreelancer</div>
@@ -15,7 +33,9 @@ const Header = ({ nick, onLogout, isOnline }) => {
             <div className="flex items-center space-x-3">
                 <div className="text-right">
                     <div className="text-xs text-gray-300">{nick}</div>
-                    <div className="text-xs text-gray-500">Freelancer</div>
+                    <div className="text-xs text-gray-500">
+                        {isGoogleUser ? 'Google' : 'Anonim'}
+                    </div>
                 </div>
                 <button
                     onClick={onLogout}
