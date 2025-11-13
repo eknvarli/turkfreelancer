@@ -1,27 +1,27 @@
 import express from "express";
 import http from "http";
-import { Server } from "socket.io";
+import {Server} from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import passport from "passport";
-import { connectDB, sequelize } from "./db.js";
-import { Message } from "./models/Message.js";
+import {connectDB, sequelize} from "./db.js";
+import {Message} from "./models/Message.js";
 import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 await connectDB();
-await sequelize.sync({ alter: true });
+await sequelize.sync({alter: true});
 
 const app = express();
 
 app.use(cors({
-    origin: ["http://localhost:3000", "chrome-extension://*"],
+    origin: ["*"],
     credentials: true
 }));
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({extended: true}));
 
 app.use(session({
     secret: process.env.SESSION_SECRET || "turkfreelancer-secret-key",
@@ -41,6 +41,8 @@ app.use('/auth', authRoutes);
 
 const users = {};
 const userSessions = {};
+const userLastMessageTime = {};
+const MESSAGE_COOLDOWN = 5000;
 
 passport.serializeUser((user, done) => {
     console.log("Serializing user:", user.displayName);
@@ -63,6 +65,7 @@ app.get("/auth/logout", (req, res) => {
                 delete users[socketId];
             }
             delete userSessions[userName];
+            delete userLastMessageTime[userName];
             console.log("Cleaned socket sessions for:", userName);
         }
     }
@@ -70,18 +73,18 @@ app.get("/auth/logout", (req, res) => {
     req.logout((err) => {
         if (err) {
             console.error("Passport logout error:", err);
-            return res.status(500).json({ success: false, error: "Logout failed" });
+            return res.status(500).json({success: false, error: "Logout failed"});
         }
 
         req.session.destroy((err) => {
             if (err) {
                 console.error("Session destroy error:", err);
-                return res.status(500).json({ success: false, error: "Session destroy failed" });
+                return res.status(500).json({success: false, error: "Session destroy failed"});
             }
 
             res.clearCookie("connect.sid");
             console.log("Logout successful");
-            res.json({ success: true, message: "Logged out successfully" });
+            res.json({success: true, message: "Logged out successfully"});
         });
     });
 });
@@ -94,17 +97,18 @@ app.get("/auth/check", (req, res) => {
             user: req.user
         });
     } else {
-        res.json({ authenticated: false });
+        res.json({authenticated: false});
     }
 });
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
     next();
 });
+
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -126,6 +130,10 @@ io.on("connection", (socket) => {
         users[socket.id] = userName;
         userSessions[userName] = socket.id;
 
+        if (!userLastMessageTime[userName]) {
+            userLastMessageTime[userName] = 0;
+        }
+
         const lastMessages = await Message.findAll({
             order: [["id", "ASC"]],
             limit: 50,
@@ -145,6 +153,22 @@ io.on("connection", (socket) => {
         const userName = users[socket.id];
         if (!userName) return;
 
+        const now = Date.now();
+        const lastMessageTime = userLastMessageTime[userName] || 0;
+        const timeSinceLastMessage = now - lastMessageTime;
+
+        if (timeSinceLastMessage < MESSAGE_COOLDOWN) {
+            const remainingTime = Math.ceil((MESSAGE_COOLDOWN - timeSinceLastMessage) / 1000);
+            socket.emit("message_cooldown", {
+                success: false,
+                message: `Lütfen bekleyin! ${remainingTime} saniye sonra mesaj gönderebilirsiniz.`,
+                remainingTime: remainingTime
+            });
+            return;
+        }
+
+        userLastMessageTime[userName] = now;
+
         const saved = await Message.create({
             user: userName,
             text: msg.text,
@@ -158,6 +182,11 @@ io.on("connection", (socket) => {
             timestamp: saved.timestamp,
             isOwn: false
         });
+
+        socket.emit("message_sent", {
+            success: true,
+            message: "Mesajınız gönderildi!"
+        });
     });
 
     socket.on("user_logout", (nick) => {
@@ -169,6 +198,9 @@ io.on("connection", (socket) => {
         }
         if (users[socket.id]) {
             delete users[socket.id];
+        }
+        if (userName) {
+            delete userLastMessageTime[userName];
         }
 
         io.emit("receive_message", {
