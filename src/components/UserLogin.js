@@ -73,14 +73,12 @@ export default function UserLogin({ setNick }) {
         <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
             <div className="text-center mb-8">
                 <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
-                    <div className="w-16 h-16 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-white font-bold text-2xl tracking-tight">TF</span>
-                    </div>
+                    <img className={"rounded-lg"} src={"logo.png"} />
                 </div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
-                    TurkFreelancer
+                <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-2">
+                    TürkFreelancer
                 </h1>
-                <p className="text-gray-400 text-sm font-medium">Türk Freelancer Topluluğu</p>
+                <p className="text-gray-400 text-sm font-medium">Yenilikçi freelancer topluluğu.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="w-full max-w-sm bg-gray-800/50 p-6 rounded-2xl shadow-lg space-y-4 border border-gray-700">
@@ -106,7 +104,7 @@ export default function UserLogin({ setNick }) {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg"
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg"
                 >
                     {loading ? "İşlem yapılıyor..." : isLoginMode ? "Giriş Yap" : "Kayıt Ol"}
                 </button>
@@ -147,7 +145,7 @@ export default function UserLogin({ setNick }) {
 
             <div className="mt-6 text-center">
                 <div className="text-xs text-gray-500 font-medium">
-                    Güvenli • Anonim • Hızlı
+                    TürkFreelancer bir <a className="text-blue-500" href="https://enufak.com" target="_blank">EnUfak&copy;</a> oluşumudur.
                 </div>
             </div>
         </div>
