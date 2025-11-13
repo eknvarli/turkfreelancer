@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Header = ({ nick, onLogout, isOnline, userData, isGoogleUser, connectionStatus }) => {
+const Header = ({ nick, onLogout, isOnline, userData, connectionStatus }) => {
     const getStatusColor = () => {
         switch (connectionStatus) {
             case 'connected': return 'bg-green-400';
@@ -19,6 +19,14 @@ const Header = ({ nick, onLogout, isOnline, userData, isGoogleUser, connectionSt
         }
     };
 
+    const getUserType = () => {
+        if (nick && nick.startsWith('Anonim_')) {
+            return 'Anonim';
+        } else {
+            return 'Topluluk Hesabı';
+        }
+    };
+
     return (
         <div className="px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700 flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -34,7 +42,7 @@ const Header = ({ nick, onLogout, isOnline, userData, isGoogleUser, connectionSt
                 <div className="text-right">
                     <div className="text-xs text-gray-300">{nick}</div>
                     <div className="text-xs text-gray-500">
-                        {isGoogleUser ? 'Google' : 'Anonim'}
+                        {getUserType()}
                     </div>
                 </div>
                 <button

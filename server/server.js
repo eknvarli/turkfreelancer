@@ -5,9 +5,9 @@ import cors from "cors";
 import dotenv from "dotenv";
 import session from "express-session";
 import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { connectDB, sequelize } from "./db.js";
 import { Message } from "./models/Message.js";
+import authRoutes from "./routes/auth.js";
 
 dotenv.config();
 await connectDB();
@@ -37,6 +37,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/auth', authRoutes);
 
 const users = {};
 const userSessions = {};
@@ -51,102 +52,6 @@ passport.deserializeUser((obj, done) => {
     done(null, obj);
 });
 
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: "http://localhost:4000/auth/google/callback",
-        },
-        (accessToken, refreshToken, profile, done) => {
-            console.log("Google OAuth success:", profile.displayName);
-            done(null, profile);
-        }
-    )
-);
-
-app.get("/auth/google", (req, res, next) => {
-    const extension = req.query.extension ? 1 : 0;
-    req.session.extension = extension;
-    console.log("Google auth started, extension:", extension);
-    next();
-}, passport.authenticate("google", { scope: ["profile", "email"] }));
-
-app.get("/auth/google/callback",
-    passport.authenticate("google", {
-        failureRedirect: "/auth/failure",
-        failureMessage: true
-    }),
-    (req, res) => {
-        const user = req.user;
-        console.log("Google callback success:", user.displayName);
-
-        if (req.session.extension) {
-            res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>TurkFreelancer - Giriş Başarılı</title>
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    display: flex; 
-                    justify-content: center; 
-                    align-items: center; 
-                    height: 100vh; 
-                    margin: 0; 
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                }
-                .container { 
-                    text-align: center; 
-                    padding: 20px;
-                }
-                .success-icon {
-                    font-size: 48px;
-                    margin-bottom: 20px;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="success-icon">✅</div>
-                <h2>Giriş Başarılı!</h2>
-                <p>Sayfa kapatılıyor...</p>
-            </div>
-            <script>
-                window.onload = function() {
-                    const data = { 
-                        name: "${user.displayName}", 
-                        email: "${user.emails[0].value}",
-                        picture: "${user.photos?.[0]?.value || ''}"
-                    };
-                    console.log('Sending data to extension:', data);
-                    
-                    if (window.opener && !window.opener.closed) {
-                        window.opener.postMessage(data, "*");
-                        console.log('Message sent successfully');
-                    } else {
-                        console.error('Parent window not available');
-                    }
-                    
-                    setTimeout(() => {
-                        window.close();
-                    }, 1000);
-                };
-                
-                window.addEventListener('beforeunload', function() {
-                    console.log('Window closing...');
-                });
-            </script>
-        </body>
-        </html>
-      `);
-        } else {
-            res.redirect(`http://localhost:3000/?name=${encodeURIComponent(user.displayName)}&email=${encodeURIComponent(user.emails[0].value)}`);
-        }
-    }
-);
 app.get("/auth/logout", (req, res) => {
     console.log("Logout request received, user:", req.user?.displayName);
 
@@ -191,11 +96,6 @@ app.get("/auth/check", (req, res) => {
     } else {
         res.json({ authenticated: false });
     }
-});
-
-app.get("/auth/failure", (req, res) => {
-    console.log("OAuth failure");
-    res.send("OAuth Failed");
 });
 
 app.use((req, res, next) => {
