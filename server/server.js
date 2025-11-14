@@ -16,8 +16,10 @@ await sequelize.sync({alter: true});
 const app = express();
 
 app.use(cors({
-    origin: ["*"],
-    credentials: true
+    origin: "*",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
@@ -100,15 +102,6 @@ app.get("/auth/check", (req, res) => {
         res.json({authenticated: false});
     }
 });
-
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept');
-    next();
-});
-
 
 const server = http.createServer(app);
 const io = new Server(server, {
